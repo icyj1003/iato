@@ -114,11 +114,11 @@ class MAA2C:
 
         # Update Actors
         for i in range(self.num_agents):
-
             agent_state = states[:, i, :]
             # Use the log probability and advantage to calculate the actor loss
 
             logits = self.actors[i](agent_state)
+
             dist = torch.distributions.Categorical(logits=logits)
 
             log_probs = dist.log_prob(actions[:, i])
@@ -127,6 +127,7 @@ class MAA2C:
 
             self.actor_optimizers[i].zero_grad()
             actor_loss.backward()
+            torch.nn.utils.clip_grad_norm_(self.actors[i].parameters(), max_norm=1.0)
             self.actor_optimizers[i].step()
             self.writer.add_scalar(f"loss/actor_{i}", actor_loss, self.steps)
 

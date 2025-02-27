@@ -15,7 +15,8 @@ class Actor(nn.Module):
     def forward(self, state):
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
-        logits = self.fc3(x)
+        x = self.fc3(x)
+        logits = F.softmax(x, dim=-1)
         return logits  # Return logits for Categorical distribution
 
     def act(self, state):
