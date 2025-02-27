@@ -332,7 +332,7 @@ class IIoTNetwork:
 
         mean_reward = np.mean(task_finished)
         rewards = (
-            self.alpha * (mean_reward - deadline_penalty)
+            self.alpha * (-mean_reward - deadline_penalty)
             - self.beta * interruption_penalty
         )
 
