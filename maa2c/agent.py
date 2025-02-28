@@ -23,6 +23,7 @@ class MAA2C:
         T=3000,
         memory_size=10000,
         grad_clip=5.0,
+        learn_every=10,
     ):
         self.num_agents = num_agents
         self.env = env
@@ -36,6 +37,7 @@ class MAA2C:
         self.steps = 0
         self.memory_size = memory_size
         self.grad_clip = grad_clip
+        self.learn_every = learn_every
 
         # Create a separate actor for each agent
         self.actors = [
@@ -51,8 +53,7 @@ class MAA2C:
 
         # Optimizers for actors and critic
         self.actor_optimizers = [
-            torch.optim.Adam(actor.parameters(), lr=actor_lr, betas=(0.3, 0.999))
-            for actor in self.actors
+            torch.optim.Adam(actor.parameters(), lr=actor_lr) for actor in self.actors
         ]
         self.critic_optimizers = [
             torch.optim.Adam(critic.parameters(), lr=critic_lr)
@@ -193,7 +194,9 @@ class MAA2C:
                     # If enough experiences are collected, start training
                     if len(self.memory) > self.batch_size:
                         batch = self.memory.sample(self.batch_size)
-                        self.update(*batch)
+
+                        if self.steps % self.learn_every == 0:
+                            self.update(*batch)
 
                     # Move to the next state
                     states = next_states
