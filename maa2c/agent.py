@@ -201,3 +201,28 @@ class MAA2C:
 
             self.writer.add_scalar("delay/episode", np.mean(delay), episode)
             print(f"Episode {episode} completed, average delay: {np.mean(delay)}")
+
+    def save(self, path):
+        torch.save(
+            {
+                "actor": self.actors[0].state_dict(),
+                "critic": self.critics[0].state_dict(),
+            },
+            path,
+        )
+
+    def eval(self):
+        states = self.env.reset()
+        done = False
+        delay = []
+        with tqdm(total=self.T) as pbar:
+            while not done:
+                actions, _ = self.select_action(states)
+                next_states, rewards, dones, infos = self.env.step(actions)
+                states = next_states
+                done = dones
+                delay.append(infos["avg_delay"])
+                pbar.update(1)
+
+        print(f"Average delay: {np.mean(delay)}")
+        return np.mean(delay)

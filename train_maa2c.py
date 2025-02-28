@@ -26,7 +26,7 @@ parser.add_argument("--alpha", type=float, default=100, help="alpha parameter")
 parser.add_argument("--beta", type=float, default=5, help="beta parameter")
 parser.add_argument("--episodes", type=int, default=100, help="number of episodes")
 parser.add_argument("--device", type=str, default="cpu", help="device to train on")
-parser.add_argument("--actor_lr", type=float, default=1e-4, help="actor learning rate")
+parser.add_argument("--actor_lr", type=float, default=1e-5, help="actor learning rate")
 parser.add_argument(
     "--critic_lr", type=float, default=1e-3, help="critic learning rate"
 )
