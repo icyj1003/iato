@@ -33,7 +33,7 @@ parser.add_argument(
 parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
 parser.add_argument("--batch_size", type=int, default=32, help="batch size")
 parser.add_argument("--memory_size", type=int, default=10000, help="memory size")
-parser.add_argument("--hidden_dim", type=int, default=32, help="hidden dimension")
+parser.add_argument("--hidden_dim", type=int, default=64, help="hidden dimension")
 
 
 if __name__ == "__main__":
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         batch_size=batch_size,
         T=T,
         memory_size=memory_size,
-        grad_clip=0.5,
+        grad_clip=5.0,
     )
 
     agent.train(num_episodes=episodes)
