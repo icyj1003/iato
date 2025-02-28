@@ -1,6 +1,8 @@
-import numpy as np
-from env.env import IIoTNetwork
 import argparse
+
+import numpy as np
+
+from env.env import IIoTNetwork
 
 parser = argparse.ArgumentParser(
     description="Train MAA2C agent in IIoTNetwork environment"
@@ -26,14 +28,15 @@ parser.add_argument("--alpha", type=float, default=100, help="alpha parameter")
 parser.add_argument("--beta", type=float, default=5, help="beta parameter")
 parser.add_argument("--episodes", type=int, default=100, help="number of episodes")
 parser.add_argument("--device", type=str, default="cpu", help="device to train on")
-parser.add_argument("--actor_lr", type=float, default=1e-4, help="actor learning rate")
+parser.add_argument("--actor_lr", type=float, default=1e-5, help="actor learning rate")
 parser.add_argument(
-    "--critic_lr", type=float, default=1e-3, help="critic learning rate"
+    "--critic_lr", type=float, default=1e-2, help="critic learning rate"
 )
-parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
-parser.add_argument("--batch_size", type=int, default=32, help="batch size")
-parser.add_argument("--memory_size", type=int, default=10000, help="memory size")
+parser.add_argument("--gamma", type=float, default=0.9, help="discount factor")
+parser.add_argument("--batch_size", type=int, default=128, help="batch size")
+parser.add_argument("--memory_size", type=int, default=100000, help="memory size")
 parser.add_argument("--hidden_dim", type=int, default=64, help="hidden dimension")
+parser.add_argument("--seed", type=int, default=0, help="random seed")
 
 
 if __name__ == "__main__":
@@ -61,11 +64,24 @@ if __name__ == "__main__":
     batch_size = args.batch_size
     memory_size = args.memory_size
     hidden_dim = args.hidden_dim
+    seed = args.seed
 
     env = IIoTNetwork(
-        N, M, T, F_D, F_E, B_E, P_E, coverage, sigma2, R_E2E, lambda_I, alpha, beta
+        N,
+        M,
+        T,
+        F_D,
+        F_E,
+        B_E,
+        P_E,
+        coverage,
+        sigma2,
+        R_E2E,
+        lambda_I,
+        alpha,
+        beta,
+        seed,
     )
-
     # evaluate for 3000 time slots with on device computation only
     delay = []
     env.reset()

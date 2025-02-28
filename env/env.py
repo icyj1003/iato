@@ -19,6 +19,7 @@ class IIoTNetwork:
         lambda_I,
         alpha,
         beta,
+        seed=None,
     ):
         self.N = N  # Number of edge servers
         self.M = M  # Number of devices
@@ -34,6 +35,9 @@ class IIoTNetwork:
         self.timestep = 0
         self.alpha = alpha
         self.beta = beta
+        self.seed = seed
+
+        self.random_state = np.random.RandomState(seed)
 
         self.state_dim = 3 + self.N + self.N + 1
         self.action_dim = self.N + 1
@@ -43,11 +47,12 @@ class IIoTNetwork:
         self.adjacency_list, self.positions = generate_grid(self.N)
 
         # randomly assign devices to edge servers
-        self.device_assignments = np.random.randint(0, self.N, self.M)
+        # self.device_assignments = self.random_state.randint(0, self.N, self.M)
+        self.device_assignments = self.random_state.randint(0, self.N, self.M)
         self.shortest_distances = shortest_hop_distance(self.adjacency_list)
 
     def update_channel(self):
-        self.device_distances = np.random.rand(self.M) * self.coverage
+        self.device_distances = self.random_state.rand(self.M) * self.coverage
 
         # Path loss model in dB
         PL_dB = 128.1 + 37.6 * np.log10(self.device_distances / 1000)
@@ -71,20 +76,20 @@ class IIoTNetwork:
 
     def generate_task(self):
         # generate tasks size in bits for each device
-        self.si = np.random.randint(1 * 10**6, 2 * 10**6, self.M)
+        self.si = self.random_state.randint(1 * 10**6, 2 * 10**6, self.M)
 
         # generate per bit tasks computation requirement in cycles for each device
-        self.fi = np.random.randint(500, 1500, self.M)
+        self.fi = self.random_state.randint(500, 1500, self.M)
 
         # generate task completion deadline for each device
-        self.ri = np.random.uniform(0.8, 1.0, self.M)
+        self.ri = self.random_state.uniform(0.8, 1.0, self.M)
 
         # generate required computation cycles for each device
         self.ci = self.si * self.fi
 
     def generate_interruption_threshold(self):
         self.interruption_threshold = (
-            -np.log(1 - np.random.uniform(0, 1, self.N)) / self.lambda_I
+            -np.log(1 - self.random_state.uniform(0, 1, self.N)) / self.lambda_I
         ) / 100
 
     def reset(self):
@@ -328,7 +333,6 @@ class IIoTNetwork:
             if task_finished[i] > self.ri[i]:
                 deadline_penalty[i] = abs(task_finished[i] - self.ri[i])
 
-        # mean_reward = np.mean(task_finished)
         rewards = (
             self.alpha * (-task_finished - deadline_penalty)
             - self.beta * interruption_penalty
@@ -339,12 +343,17 @@ class IIoTNetwork:
         done = self.timestep == self.T
         self.timestep += 1
         avg_delay = np.mean(task_finished)
+
+        availability_ratio = self.availability.sum() / self.N
+
         return (
             self.observation(),
             rewards,
             done,
             {
                 "avg_delay": avg_delay,
+                "availability_ratio": availability_ratio,
+                "interruption_penalty": interruption_penalty / self.M,
             },
         )
 

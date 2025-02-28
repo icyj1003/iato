@@ -179,6 +179,9 @@ class MAA2C:
             states = self.env.reset()
             done = False
             delay = []
+            availabilities = []
+            interruption_penalty = []
+
             with tqdm(total=self.T) as pbar:  # trainng for T time slots in each episode
                 while not done:
                     actions, log_probs = self.select_action(
@@ -202,9 +205,17 @@ class MAA2C:
                     states = next_states
                     done = dones
                     delay.append(infos["avg_delay"])
+                    availabilities.append(infos["availability_ratio"])
+                    interruption_penalty.append(infos["interruption_penalty"])
                     pbar.update(1)
 
-            self.writer.add_scalar("delay/episode", np.mean(delay), episode)
+            self.writer.add_scalar("avg delay/episode", np.mean(delay), episode)
+            self.writer.add_scalar(
+                "availability/episode", np.mean(availabilities), episode
+            )
+            self.writer.add_scalar(
+                "interruption_penalty/episode", np.mean(interruption_penalty), episode
+            )
             print(f"Episode {episode} completed, average delay: {np.mean(delay)}")
 
     def save(self, path):
@@ -216,6 +227,8 @@ class MAA2C:
         states = self.env.reset()
         done = False
         delay = []
+        availabilities = []
+        interruption_penalty = []
         with tqdm(total=self.T) as pbar:
             while not done:
                 actions, _ = self.select_action(states)
@@ -223,7 +236,16 @@ class MAA2C:
                 states = next_states
                 done = dones
                 delay.append(infos["avg_delay"])
+                availabilities.append(infos["availability_ratio"])
+                interruption_penalty.append(infos["interruption_penalty"])
                 pbar.update(1)
 
         print(f"Average delay: {np.mean(delay)}")
-        return np.mean(delay)
+        print(f"Average availability: {np.mean(availabilities)}")
+        print(f"Average interruption penalty: {np.mean(interruption_penalty)}")
+
+        return {
+            "avg_delay": np.mean(delay),
+            "availability_ratio": np.mean(availabilities),
+            "interruption_penalty": np.mean(interruption_penalty),
+        }
