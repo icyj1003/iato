@@ -38,8 +38,6 @@ class IIoTNetwork:
         self.state_dim = 3 + self.N + self.N + 1
         self.action_dim = self.N + 1
 
-        self.render_mode = "human"
-
     def init_topology(self):
         # generate hexagonal grid topology
         self.adjacency_list, self.positions = generate_grid(self.N)
