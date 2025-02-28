@@ -330,13 +330,14 @@ class IIoTNetwork:
             if task_finished[i] > self.ri[i]:
                 deadline_penalty[i] = abs(task_finished[i] - self.ri[i])
 
-        mean_reward = np.mean(task_finished)
-        # rewards = (
-        #     self.alpha * (-mean_reward - deadline_penalty)
-        #     - self.beta * interruption_penalty
-        # )
+        # mean_reward = np.mean(task_finished)
+        rewards = (
+            self.alpha * (-task_finished - deadline_penalty)
+            - self.beta * interruption_penalty
+            + 100
+        )
 
-        rewards = [-mean_reward for i in range(self.M)]
+        rewards = [rewards[i] for i in range(self.M)]
         done = self.timestep == self.T
         self.timestep += 1
         avg_delay = np.mean(task_finished)

@@ -2,8 +2,8 @@ import numpy as np
 from env.env import IIoTNetwork
 
 T = 3000  # number of time slots
-N = 5  # 10, 15, 20
-M = 10  # 20, 30, 40
+N = 10  # 10, 15, 20
+M = 40  # 20, 30, 40
 F_D = 2 * 10**9  # computation capacity of devices
 F_E = 25 * 10**9  # computation capacity of edge servers
 B_E = 2 * 10**6  # bandwidth per device: 20 MHz
