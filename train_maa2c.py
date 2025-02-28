@@ -18,7 +18,7 @@ parser.add_argument("--B_E", type=float, default=2e6, help="bandwidth per device
 parser.add_argument("--P_E", type=float, default=35, help="transmission power")
 parser.add_argument("--coverage", type=float, default=500, help="edge server coverage")
 parser.add_argument("--sigma2", type=float, default=-174, help="noise power")
-parser.add_argument("--R_E2E", type=float, default=1e10, help="wired connection rate")
+parser.add_argument("--R_E2E", type=float, default=150e6, help="wired connection rate")
 parser.add_argument(
     "--lambda_I", type=float, default=1e-3, help="interruption sensitivity parameter"
 )
@@ -30,8 +30,8 @@ parser.add_argument("--actor_lr", type=float, default=1e-5, help="actor learning
 parser.add_argument(
     "--critic_lr", type=float, default=1e-3, help="critic learning rate"
 )
-parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
-parser.add_argument("--batch_size", type=int, default=32, help="batch size")
+parser.add_argument("--gamma", type=float, default=0.9, help="discount factor")
+parser.add_argument("--batch_size", type=int, default=128, help="batch size")
 parser.add_argument("--memory_size", type=int, default=10000, help="memory size")
 parser.add_argument("--hidden_dim", type=int, default=64, help="hidden dimension")
 
@@ -79,7 +79,7 @@ if __name__ == "__main__":
         batch_size=batch_size,
         T=T,
         memory_size=memory_size,
-        grad_clip=5.0,
+        grad_clip=0.5,
     )
 
     agent.train(num_episodes=episodes)

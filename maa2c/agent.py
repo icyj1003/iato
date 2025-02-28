@@ -121,9 +121,10 @@ class MAA2C:
 
             # Calculate the advantage
             advantages = (target_values - values).detach()
+            advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-            # Calculate the critic loss
-            critic_loss = torch.mean((values - target_values) ** 2)
+            # Calculate the critic loss using Huber loss
+            critic_loss = torch.nn.functional.smooth_l1_loss(values, target_values)
 
             self.critic_optimizers[i].zero_grad()
             critic_loss.backward()
@@ -155,7 +156,7 @@ class MAA2C:
             # Calculate the actor loss
             entropy_loss = dist.entropy().mean()  # Entropy regularization
             actor_loss = (
-                -torch.mean(log_probs * advantages) - 0.01 * entropy_loss
+                -torch.mean(log_probs * advantages) - 0.001 * entropy_loss
             )  # Add entropy term
 
             self.actor_optimizers[i].zero_grad()
