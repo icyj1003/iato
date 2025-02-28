@@ -19,6 +19,7 @@ class IIoTNetwork:
         lambda_I,
         alpha,
         beta,
+        recv=3,
         seed=None,
     ):
         self.N = N  # Number of edge servers
@@ -36,6 +37,7 @@ class IIoTNetwork:
         self.alpha = alpha
         self.beta = beta
         self.seed = seed
+        self.recv = recv
 
         self.random_state = np.random.RandomState(seed)
 
@@ -248,7 +250,7 @@ class IIoTNetwork:
             new_shortest_distances = shortest_hop_distance(new_adjacency_list)
 
             self.availability[interrupted_edge] = 0
-            self.recovery_time[interrupted_edge] = 1
+            self.recovery_time[interrupted_edge] = self.recv
 
             for i in range(self.M):
                 if not task_done[i]:

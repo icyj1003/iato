@@ -39,6 +39,7 @@ parser.add_argument("--batch_size", type=int, default=128, help="batch size")
 parser.add_argument("--memory_size", type=int, default=100000, help="memory size")
 parser.add_argument("--hidden_dim", type=int, default=64, help="hidden dimension")
 parser.add_argument("--seed", type=int, default=0, help="random seed")
+parser.add_argument("--recv", type=int, default=0, help="Recovery time")
 
 
 if __name__ == "__main__":
@@ -67,6 +68,7 @@ if __name__ == "__main__":
     memory_size = args.memory_size
     hidden_dim = args.hidden_dim
     seed = args.seed
+    recv = args.recv
 
     env = IIoTNetwork(
         N,
@@ -82,6 +84,7 @@ if __name__ == "__main__":
         lambda_I,
         alpha,
         beta,
+        recv,
         seed,
     )
 
