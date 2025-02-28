@@ -11,10 +11,12 @@ class Actor(nn.Module):
         self.fc3 = nn.Linear(
             hidden_dim, action_dim
         )  # Output is the logits for a categorical distribution
+        self.norm1 = nn.LayerNorm(hidden_dim)
+        self.norm2 = nn.LayerNorm(hidden_dim)
 
     def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
+        x = F.relu(self.norm1(self.fc1(state)))
+        x = F.relu(self.norm2(self.fc2(x)))
         x = self.fc3(x)
         logits = F.softmax(x, dim=-1)
         return logits  # Return logits for Categorical distribution
@@ -45,9 +47,11 @@ class Critic(nn.Module):
         self.fc3 = nn.Linear(
             hidden_dim, 1
         )  # Output is a single scalar value (state-value)
+        self.norm1 = nn.LayerNorm(hidden_dim)
+        self.norm2 = nn.LayerNorm(hidden_dim)
 
     def forward(self, state):
-        x = F.relu(self.fc1(state))
-        x = F.relu(self.fc2(x))
+        x = F.relu(self.norm1(self.fc1(state)))
+        x = F.relu(self.norm2(self.fc2(x)))
         value = self.fc3(x)
         return value  # State-value estimation

@@ -1,6 +1,9 @@
+import argparse
+import datetime
+import os
+
 from env.env import IIoTNetwork
 from maa2c.agent import MAA2C
-import argparse
 
 parser = argparse.ArgumentParser(
     description="Train MAA2C agent in IIoTNetwork environment"
@@ -28,11 +31,11 @@ parser.add_argument("--episodes", type=int, default=100, help="number of episode
 parser.add_argument("--device", type=str, default="cpu", help="device to train on")
 parser.add_argument("--actor_lr", type=float, default=1e-5, help="actor learning rate")
 parser.add_argument(
-    "--critic_lr", type=float, default=1e-3, help="critic learning rate"
+    "--critic_lr", type=float, default=1e-2, help="critic learning rate"
 )
 parser.add_argument("--gamma", type=float, default=0.9, help="discount factor")
 parser.add_argument("--batch_size", type=int, default=128, help="batch size")
-parser.add_argument("--memory_size", type=int, default=10000, help="memory size")
+parser.add_argument("--memory_size", type=int, default=100000, help="memory size")
 parser.add_argument("--hidden_dim", type=int, default=64, help="hidden dimension")
 
 
@@ -83,3 +86,21 @@ if __name__ == "__main__":
     )
 
     agent.train(num_episodes=episodes)
+
+    now = datetime.datetime.now()
+
+    path = os.path.join(
+        "models", f"N={N}_M={M}_lambdaI={lambda_I}_{now.strftime('%b%d_%H-%M-%S')}"
+    )
+
+    os.makedirs(path, exist_ok=True)
+
+    # save args
+    with open(os.path.join(path, "args.txt"), "w") as f:
+        f.write(str(args))
+
+    # save agents
+    agent.save(path)
+
+    # eval agens
+    delay = agent.eval()

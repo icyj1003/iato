@@ -51,7 +51,8 @@ class MAA2C:
 
         # Optimizers for actors and critic
         self.actor_optimizers = [
-            torch.optim.Adam(actor.parameters(), lr=actor_lr) for actor in self.actors
+            torch.optim.Adam(actor.parameters(), lr=actor_lr, betas=(0.3, 0.999))
+            for actor in self.actors
         ]
         self.critic_optimizers = [
             torch.optim.Adam(critic.parameters(), lr=critic_lr)
@@ -204,13 +205,9 @@ class MAA2C:
             print(f"Episode {episode} completed, average delay: {np.mean(delay)}")
 
     def save(self, path):
-        torch.save(
-            {
-                "actor": self.actors[0].state_dict(),
-                "critic": self.critics[0].state_dict(),
-            },
-            path,
-        )
+        for i in range(self.num_agents):
+            torch.save(self.actors[i].state_dict(), f"{path}/actor_{i}.pth")
+            torch.save(self.critics[i].state_dict(), f"{path}/critic_{i}.pth")
 
     def eval(self):
         states = self.env.reset()
