@@ -14,6 +14,7 @@ class MAA2C:
         num_agents,
         state_dim,
         action_dim,
+        name,
         hidden_dim=64,
         actor_lr=1e-4,
         critic_lr=1e-3,
@@ -33,11 +34,12 @@ class MAA2C:
         self.device = device
         self.batch_size = batch_size
         self.T = T
-        self.writer = tensorboardX.SummaryWriter()
+        self.writer = tensorboardX.SummaryWriter(f"runs/{name}")
         self.steps = 0
         self.memory_size = memory_size
         self.grad_clip = grad_clip
         self.learn_every = learn_every
+        self.name = name
 
         # Create a separate actor for each agent
         self.actors = [
@@ -47,7 +49,9 @@ class MAA2C:
 
         # Shared critic for all agents
         self.critics = [
-            Critic(num_agents * state_dim, hidden_dim).to(device)
+            Critic(num_agents * state_dim, num_agents * action_dim, hidden_dim).to(
+                device
+            )
             for _ in range(num_agents)
         ]
 
@@ -73,11 +77,11 @@ class MAA2C:
         # Memory for experience replay
         self.memory = ReplayMemory(self.memory_size)
 
-    def select_action(self, states):
+    def select_action(self, states, masks):
         # Select actions for all agents
-        self.steps += 1
-
         # Convert states to tensors
+
+        masks = torch.tensor(masks, dtype=torch.float).to(self.device)
         states = torch.tensor(states, dtype=torch.float).to(self.device)
 
         actions = []
@@ -85,14 +89,16 @@ class MAA2C:
 
         for i in range(self.num_agents):
             # Each agent has its own policy
-            action, log_prob = self.actors[i].act(states[i])
+            action, log_prob = self.actors[i].act(states[i], masks[i])
+
             actions.append(action)
             log_probs.append(log_prob)
 
         return actions, log_probs
 
-    def update(self, states, actions, rewards, next_states, dones):
+    def update(self, states, masks, actions, rewards, next_states, dones):
         # convernt to tensors
+        masks = torch.tensor(np.array(masks), dtype=torch.float).to(self.device)
         states = torch.tensor(np.array(states), dtype=torch.float).to(self.device)
         actions = torch.tensor(actions, dtype=torch.float).to(self.device)
         rewards = torch.tensor(np.array(rewards), dtype=torch.float).to(self.device)
@@ -109,17 +115,28 @@ class MAA2C:
             # Use the joint states to get the value of the current state
             joint_next_states = next_states.reshape(next_states.shape[0], -1)
 
+            one_hot_action = torch.nn.functional.one_hot(
+                actions.long(), num_classes=self.action_dim
+            ).float()
+
+            joint_actions = one_hot_action.reshape(one_hot_action.shape[0], -1)
+            joint_states = states.reshape(states.shape[0], -1)
+            joint_actions = one_hot_action.reshape(one_hot_action.shape[0], -1)
+
             # Get the value of the next state
-            next_states_values = self.critics[i](joint_next_states).squeeze(-1).detach()
+            # next_states_values = self.critics[i](joint_next_states).squeeze(-1).detach()
+            next_states_values = (
+                self.critics[i](joint_next_states, joint_actions).squeeze(-1).detach()
+            )
 
             # Calculate the target value using the Bellman equation
-            target_values = (
-                rewards[:, i] + (1 - dones) * self.gamma * next_states_values
+            target_values = rewards[:, i] + self.gamma * next_states_values * (
+                1 - dones
             )
 
             # Get the value of the current state
-            joint_states = states.reshape(states.shape[0], -1)
-            values = self.critics[i](joint_states).squeeze(-1)
+            # values = self.critics[i](joint_states).squeeze(-1)
+            values = self.critics[i](joint_states, joint_actions).squeeze(-1)
 
             # Calculate the advantage
             advantages = (target_values - values).detach()
@@ -145,18 +162,20 @@ class MAA2C:
 
             # Get the current state of the agent
             agent_state = states[:, i, :]
+            agent_mask = masks[:, i]
 
             # Get the logits from the actor network
-            logits = self.actors[i](agent_state)
+            logits = self.actors[i](agent_state, agent_mask)
 
             # Create a distribution from the logits
-            dist = torch.distributions.Categorical(logits=logits)
+            dist = torch.distributions.Categorical(probs=logits)
 
             # Get the log probabilities of the actions
             log_probs = dist.log_prob(actions[:, i])
 
             # Calculate the actor loss
             entropy_loss = dist.entropy().mean()  # Entropy regularization
+
             actor_loss = (
                 -torch.mean(log_probs * advantages) - 0.001 * entropy_loss
             )  # Add entropy term
@@ -174,78 +193,54 @@ class MAA2C:
             # Log the actor loss
             self.writer.add_scalar(f"loss/actor_{i}", actor_loss, self.steps)
 
-    def train(self, num_episodes):
-        for episode in tqdm(range(num_episodes)):
-            states = self.env.reset()
-            done = False
-            delay = []
-            availabilities = []
-            interruption_penalty = []
+    def train(
+        self,
+        train_steps=1000000,
+        train_after=1000,
+    ):
+        states, masks = self.env.reset()
+        rewards_list = []
+        delay = []
+        availabilities = []
+        interruption_penalty = []
 
-            with tqdm(total=self.T) as pbar:  # trainng for T time slots in each episode
-                while not done:
-                    actions, log_probs = self.select_action(
-                        states
-                    )  # Select actions for all agents
-                    next_states, rewards, dones, infos = self.env.step(
-                        actions
-                    )  # Take actions in environment
+        for step in tqdm(range(train_steps)):
+            actions, log_probs = self.select_action(states, masks)
 
-                    # Store experience in memory
-                    self.memory.add(states, actions, rewards, next_states, dones)
+            next_states, next_masks, rewards, dones, infos = self.env.step(
+                actions
+            )  # Take actions in environment
 
-                    # If enough experiences are collected, start training
-                    if len(self.memory) > self.batch_size:
-                        batch = self.memory.sample(self.batch_size)
+            # Store experience in memory
+            self.memory.add(states, masks, actions, rewards, next_states, dones)
 
-                        if self.steps % self.learn_every == 0:
-                            self.update(*batch)
+            # If enough experiences are collected, start training
+            if len(self.memory) > self.batch_size and step > train_after:
+                batch = self.memory.sample(self.batch_size)
+                if self.steps % self.learn_every == 0:
+                    self.update(*batch)
 
-                    # Move to the next state
-                    states = next_states
-                    done = dones
-                    delay.append(infos["avg_delay"])
-                    availabilities.append(infos["availability_ratio"])
-                    interruption_penalty.append(infos["interruption_penalty"])
-                    pbar.update(1)
+            # Move to the next state
+            states = next_states
+            masks = next_masks
 
-            self.writer.add_scalar("avg delay/episode", np.mean(delay), episode)
-            self.writer.add_scalar(
-                "availability/episode", np.mean(availabilities), episode
-            )
-            self.writer.add_scalar(
-                "interruption_penalty/episode", np.mean(interruption_penalty), episode
-            )
-            print(f"Episode {episode} completed, average delay: {np.mean(delay)}")
+            # Log metrics
+            rewards_list.append(np.mean(rewards))
+            delay.append(infos["avg_delay"])
+            availabilities.append(infos["availability_ratio"])
+            interruption_penalty.append(infos["interruption_penalty"])
+
+            # Log metrics
+            if step % 10 == 0:
+                self.writer.add_scalar("metrics/avg_delay", np.mean(delay), step)
+                self.writer.add_scalar(
+                    "metrics/availability_ratio", np.mean(availabilities), step
+                )
+                self.writer.add_scalar(
+                    "metrics/avg_reward", np.mean(rewards_list), step
+                )
 
     def save(self, path):
         for i in range(self.num_agents):
             torch.save(self.actors[i].state_dict(), f"{path}/actor_{i}.pth")
             torch.save(self.critics[i].state_dict(), f"{path}/critic_{i}.pth")
-
-    def eval(self):
-        states = self.env.reset()
-        done = False
-        delay = []
-        availabilities = []
-        interruption_penalty = []
-        with tqdm(total=self.T) as pbar:
-            while not done:
-                actions, _ = self.select_action(states)
-                next_states, rewards, dones, infos = self.env.step(actions)
-                states = next_states
-                done = dones
-                delay.append(infos["avg_delay"])
-                availabilities.append(infos["availability_ratio"])
-                interruption_penalty.append(infos["interruption_penalty"])
-                pbar.update(1)
-
-        print(f"Average delay: {np.mean(delay)}")
-        print(f"Average availability: {np.mean(availabilities)}")
-        print(f"Average interruption penalty: {np.mean(interruption_penalty)}")
-
-        return {
-            "avg_delay": np.mean(delay),
-            "availability_ratio": np.mean(availabilities),
-            "interruption_penalty": np.mean(interruption_penalty),
-        }
