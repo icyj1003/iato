@@ -2,6 +2,8 @@ import argparse
 import datetime
 import os
 
+import numpy as np
+
 from env.env import IIoTNetwork
 from maa2c.agent import MAA2C
 
@@ -25,22 +27,24 @@ parser.add_argument(
     "--lambda_I", type=float, default=3e-2, help="interruption sensitivity parameter"
 )
 parser.add_argument("--alpha", type=float, default=100, help="alpha parameter")
-parser.add_argument("--beta", type=float, default=5, help="beta parameter")
+parser.add_argument("--beta", type=float, default=50, help="beta parameter")
 parser.add_argument("--episodes", type=int, default=200, help="number of episodes")
 parser.add_argument("--device", type=str, default="cpu", help="device to train on")
-parser.add_argument("--actor_lr", type=float, default=1e-6, help="actor learning rate")
+parser.add_argument("--actor_lr", type=float, default=1e-5, help="actor learning rate")
 parser.add_argument(
     "--critic_lr", type=float, default=1e-2, help="critic learning rate"
 )
 parser.add_argument("--gamma", type=float, default=0.99, help="discount factor")
 parser.add_argument("--batch_size", type=int, default=32, help="batch size")
-parser.add_argument("--memory_size", type=int, default=1000000, help="memory size")
-parser.add_argument("--hidden_dim", type=int, default=128, help="hidden dimension")
+parser.add_argument("--memory_size", type=int, default=100000, help="memory size")
+parser.add_argument("--hidden_dim", type=int, default=64, help="hidden dimension")
 parser.add_argument("--seed", type=int, default=0, help="random seed")
 parser.add_argument("--recv", type=int, default=20, help="Recovery time")
 parser.add_argument(
     "--training_steps", type=int, default=1000000, help="Training steps"
 )
+parser.add_argument("--eval_steps", type=int, default=1000, help="Evaluation steps")
+
 
 if __name__ == "__main__":
 
@@ -107,15 +111,4 @@ if __name__ == "__main__":
         learn_every=10,
     )
 
-    agent.train(args.training_steps)
-
-    path = os.path.join("models", name)
-
-    os.makedirs(path, exist_ok=True)
-
-    # save args
-    with open(os.path.join(path, "args.txt"), "w") as f:
-        f.write(str(args))
-
-    # save agents
-    agent.save(path)
+    agent.train(args.training_steps, 0, args.eval_steps)

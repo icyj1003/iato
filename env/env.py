@@ -128,39 +128,16 @@ class IIoTNetwork:
             for j in range(self.N):
                 if self.availability[j] == 0:
                     action_mask[i, j + 1] = 1
-                if (
-                    get_shortest_path(
-                        self.adjacency_list, self.device_assignments[i], j
-                    )
-                    is None
-                ):
+                if self.shortest_distances[self.device_assignments[i], j] > 100:
                     action_mask[i, j + 1] = 1
 
         return observation, action_mask
 
     def step(self, actions):
 
-        device_counts = np.zeros(self.N)
-
-        # # action masking: change to local computation if edge server is not available
-        # for i in range(self.M):
-        #     if actions[i] > 0:
-        #         target_edge = actions[i] - 1
-        #         device_counts[target_edge] += 1
-        #         if self.availability[target_edge] == 0:
-        #             actions[i] = 0  # computation node is not available
-        #         if (
-        #             get_shortest_path(
-        #                 self.adjacency_list, self.device_assignments[i], target_edge
-        #             )
-        #             is None
-        #         ):
-        #             actions[i] = 0  # no path between device and edge server
-
-        #         # add then overload bandwidth and computation capacity here
-
         # compute the allocated computation capacity to devices
         allocated_capacity = np.zeros(self.N)
+        device_counts = np.zeros(self.N)
 
         for i in range(self.M):
             if actions[i] > 0:
@@ -169,7 +146,6 @@ class IIoTNetwork:
 
         for i in range(self.N):
             allocated_capacity[i] = min(5 * 10**9, self.F_E / max(1, device_counts[i]))
-            # allocated_capacity[i] = self.F_E / max(1, device_counts[i])
 
         task_done = np.zeros(self.M, dtype=int)  # 0: task not done, 1: task done
         task_finished = np.zeros(self.M)  # task completion time
@@ -302,12 +278,10 @@ class IIoTNetwork:
                                     old_routes.index(interrupted_edge) - 1
                                 ]  # take the edge server before the interrupted edge server
                                 if (
-                                    get_shortest_path(
-                                        new_adjacency_list,
-                                        pre_interruption_edge,
-                                        target_edge,
-                                    )
-                                    is None
+                                    new_shortest_distances[
+                                        pre_interruption_edge, target_edge
+                                    ]
+                                    > 100
                                 ):  # if there is no path between the pre-interruption edge server and the target edge server
                                     task_finished[i] = (
                                         served_duration + self.ci[i] / self.F_D
@@ -356,7 +330,7 @@ class IIoTNetwork:
 
         avg_delay = np.mean(task_finished)
 
-        rewards = -self.alpha * (task_finished) - self.beta * interruption_penalty + 70
+        rewards = -self.alpha * (task_finished) - self.beta * interruption_penalty
 
         rewards = [rewards[i] for i in range(self.M)]
 
@@ -367,6 +341,7 @@ class IIoTNetwork:
         self.generate_interruption_threshold()
         self.generate_task()
         observations, action_masks = self.observation()
+
         return (
             observations,
             action_masks,

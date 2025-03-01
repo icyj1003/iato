@@ -72,3 +72,16 @@ def shortest_hop_distance(adjacency_list):
                     shortest_distances[i, j] = len(path) - 1
 
     return shortest_distances
+
+
+if __name__ == "__main__":
+    edge_servers = 3
+
+    adjacency_list, positions = generate_grid(edge_servers)
+
+    st = shortest_hop_distance(adjacency_list)
+    print(st)
+
+    adjacency_list = remove_node(adjacency_list, 1)
+    st = shortest_hop_distance(adjacency_list)
+    print(st)

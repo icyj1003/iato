@@ -89,24 +89,46 @@ if __name__ == "__main__":
         obs, masks = self.reset()
         for i in range(3000):
             if strategy == "random":
-                logits = np.random.rand(M, N + 1)
-                logits = logits + masks * -1e9
-                actions = np.argmax(logits, axis=1)
+                actions = random_strategy(masks)
             elif strategy == "on_device":
-                actions = np.zeros(M)
+                actions = on_device()
             elif strategy == "on_local":
-                actions = env.device_assignments + 1
-                for i in range(M):
-                    if masks[i, actions[i] - 1] == 1:
-                        actions[i] = 0
+                actions = on_local(env, masks)
 
             obs, masks, rewards, done, info = self.step(actions)
             delay.append(info["avg_delay"])
             availabilities.append(info["availability_ratio"])
 
-        print(f"Average delay: {np.mean(delay)}")
-        print(f"Average availability: {np.mean(availabilities)}")
+        return np.mean(delay), np.mean(availabilities)
 
-    eval(env, "random")
-    eval(env, "on_device")
-    eval(env, "on_local")
+    def random_strategy(masks):
+        logits = np.random.rand(M, N + 1)
+        logits = logits + masks * -1e9
+        actions = np.argmax(logits, axis=1)
+        return actions
+
+    def on_device():
+        actions = np.zeros(M)
+        return actions
+
+    def on_local(env, masks):
+        actions = env.device_assignments + 1
+        for i in range(M):
+            if masks[i, actions[i] - 1] == 1:
+                actions[i] = 0
+        return actions
+
+    avg_delay, avg_availability = eval(env, "random")
+    print(
+        f"Random strategy: avg_delay={avg_delay}, avg_availability={avg_availability}"
+    )
+
+    avg_delay, avg_availability = eval(env, "on_device")
+    print(
+        f"On-device strategy: avg_delay={avg_delay}, avg_availability={avg_availability}"
+    )
+
+    avg_delay, avg_availability = eval(env, "on_local")
+    print(
+        f"On-local strategy: avg_delay={avg_delay}, avg_availability={avg_availability}"
+    )

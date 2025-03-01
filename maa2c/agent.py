@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import tensorboardX
 import torch
@@ -40,6 +41,8 @@ class MAA2C:
         self.grad_clip = grad_clip
         self.learn_every = learn_every
         self.name = name
+        self.path = f"models/{name}"
+        os.makedirs(self.path, exist_ok=True)
 
         # Create a separate actor for each agent
         self.actors = [
@@ -78,6 +81,7 @@ class MAA2C:
         self.memory = ReplayMemory(self.memory_size)
 
     def select_action(self, states, masks):
+        self.steps += 1
         # Select actions for all agents
         # Convert states to tensors
 
@@ -196,7 +200,8 @@ class MAA2C:
     def train(
         self,
         train_steps=1000000,
-        train_after=1000,
+        train_after=0,
+        eval_steps=3000,
     ):
         states, masks = self.env.reset()
         rewards_list = []
@@ -240,7 +245,45 @@ class MAA2C:
                     "metrics/avg_reward", np.mean(rewards_list), step
                 )
 
-    def save(self, path):
+        self.save()
+
+        self.load()
+
+        states, masks = self.env.reset()
+        rewards_list = []
+        delay = []
+        availabilities = []
+        interruption_penalty = []
+
+        for step in tqdm(range(eval_steps)):
+            actions, log_probs = self.select_action(states, masks)
+
+            next_states, next_masks, rewards, dones, infos = self.env.step(
+                actions
+            )  # Take actions in environment
+
+            # Move to the next state
+            states = next_states
+            masks = next_masks
+
+            # Log metrics
+            rewards_list.append(np.mean(rewards))
+            delay.append(infos["avg_delay"])
+            availabilities.append(infos["availability_ratio"])
+            interruption_penalty.append(infos["interruption_penalty"])
+
+        # save the metrics
+        with open(os.path.join(self.path, "metrics.txt"), "w") as f:
+            f.write(f"avg_delay: {np.mean(delay)}\n")
+            f.write(f"availability_ratio: {np.mean(availabilities)}\n")
+            f.write(f"avg_reward: {np.mean(rewards_list)}\n")
+
+    def save(self):
         for i in range(self.num_agents):
-            torch.save(self.actors[i].state_dict(), f"{path}/actor_{i}.pth")
-            torch.save(self.critics[i].state_dict(), f"{path}/critic_{i}.pth")
+            torch.save(self.actors[i].state_dict(), f"{self.path}/actor_{i}.pth")
+            torch.save(self.critics[i].state_dict(), f"{self.path}/critic_{i}.pth")
+
+    def load(self):
+        for i in range(self.num_agents):
+            self.actors[i].load_state_dict(torch.load(f"{self.path}/actor_{i}.pth"))
+            self.critics[i].load_state_dict(torch.load(f"{self.path}/critic_{i}.pth"))
