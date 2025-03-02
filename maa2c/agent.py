@@ -16,6 +16,7 @@ class MAA2C:
         state_dim,
         action_dim,
         name,
+        args={},
         hidden_dim=64,
         actor_lr=1e-4,
         critic_lr=1e-3,
@@ -43,6 +44,11 @@ class MAA2C:
         self.name = name
         self.path = f"models/{name}"
         os.makedirs(self.path, exist_ok=True)
+
+        # save the parameters
+        with open(os.path.join(self.path, "params.txt"), "w") as f:
+            for key, value in args.items():
+                f.write(f"{key}: {value}\n")
 
         # Create a separate actor for each agent
         self.actors = [

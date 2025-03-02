@@ -94,12 +94,15 @@ if __name__ == "__main__":
 
     name = f"{now.strftime('%b%d_%H-%M-%S')}_N={N}_M={M}_lambdaI={lambda_I}_recv={recv}"
 
+    args_dict = vars(args)
+
     agent = MAA2C(
         env,
         M,
         env.state_dim,
         env.action_dim,
         name,
+        args_dict,
         hidden_dim=hidden_dim,
         actor_lr=actor_lr,
         critic_lr=critic_lr,
