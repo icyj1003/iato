@@ -201,6 +201,7 @@ class IIoTNetwork:
                     self.ci[i] / allocated_capacity[target_edge] + task_arrival[i]
                 )
 
+        # Step 2: Handle interruptions
         while not all(task_done):
             task_execution_info = [[] for _ in range(self.N)]
 
@@ -320,7 +321,6 @@ class IIoTNetwork:
             self.adjacency_list = new_adjacency_list
             self.shortest_distances = new_shortest_distances
 
-        # step the recovery time of edge servers
         for i in range(self.N):
             if self.availability[i] == 0:
                 if self.recovery_time[i] == 0:
@@ -332,6 +332,7 @@ class IIoTNetwork:
             if task_finished[i] > self.ri[i]:
                 deadline_penalty[i] = abs(task_finished[i] - self.ri[i])
 
+        # Step 3: Calculate rewards
         avg_delay = np.mean(task_finished)
 
         rewards = -self.alpha * (task_finished) - self.beta * interruption_penalty
@@ -340,6 +341,7 @@ class IIoTNetwork:
 
         availability_ratio = self.availability.sum() / self.N
 
+        # Step 4: Update the environment
         self.update_device_assignments()
         self.update_channel()
         self.generate_interruption_threshold()

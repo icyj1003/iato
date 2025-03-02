@@ -82,6 +82,8 @@ if __name__ == "__main__":
         seed,
     )
 
+    random_state = np.random.RandomState(seed)
+
     def eval(self, strategy="random"):
         print(f"Evaluating with {strategy} strategy")
         delay = []
@@ -102,7 +104,7 @@ if __name__ == "__main__":
         return np.mean(delay), np.mean(availabilities)
 
     def random_strategy(masks):
-        logits = np.random.rand(M, N + 1)
+        logits = random_state.rand(M, N + 1)
         logits = logits + masks * -1e9
         actions = np.argmax(logits, axis=1)
         return actions
