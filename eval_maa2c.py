@@ -1,22 +1,22 @@
 import os
 
-Ns = [5, 10, 15, 20]
-Ms = [10, 20, 30, 40]
+Ns = [5, 10, 15, 20, 25, 30]
+Ms = [5, 10, 20, 30, 40, 50]
 lambdas = [1e-2, 2e-2, 3e-2, 4e-2]
-recvs = [5, 10, 15, 20]
+recvs = [5, 10, 15, 20, 25, 30]
 
 default_N = 5
 default_M = 20
 default_lambda = 2e-2
-default_recv = 5
+default_recv = 10
 
 seed = 1002
 
 # mode
-train_default = False
-train_no_interruption = False
-train_N = False
-train_M = False
+train_default = True
+train_no_interruption = True
+train_N = True
+train_M = True
 train_lambda = True
 train_recv = True
 
