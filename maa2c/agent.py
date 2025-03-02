@@ -81,7 +81,6 @@ class MAA2C:
         self.memory = ReplayMemory(self.memory_size)
 
     def select_action(self, states, masks):
-        self.steps += 1
         # Select actions for all agents
         # Convert states to tensors
 
@@ -210,7 +209,7 @@ class MAA2C:
         interruption_penalty = []
 
         for step in tqdm(range(train_steps)):
-            actions, log_probs = self.select_action(states, masks)
+            actions, _ = self.select_action(states, masks)
 
             next_states, next_masks, rewards, dones, infos = self.env.step(
                 actions
@@ -220,7 +219,7 @@ class MAA2C:
             self.memory.add(states, masks, actions, rewards, next_states, dones)
 
             # If enough experiences are collected, start training
-            if len(self.memory) > self.batch_size and step > train_after:
+            if len(self.memory) > self.batch_size and self.steps > train_after:
                 batch = self.memory.sample(self.batch_size)
                 if self.steps % self.learn_every == 0:
                     self.update(*batch)
@@ -236,19 +235,21 @@ class MAA2C:
             interruption_penalty.append(infos["interruption_penalty"])
 
             # Log metrics
-            if step % 10 == 0:
-                self.writer.add_scalar("metrics/avg_delay", np.mean(delay), step)
-                self.writer.add_scalar(
-                    "metrics/availability_ratio", np.mean(availabilities), step
-                )
-                self.writer.add_scalar(
-                    "metrics/avg_reward", np.mean(rewards_list), step
-                )
+            self.writer.add_scalar("metrics/avg_delay", np.mean(delay), self.steps)
+            self.writer.add_scalar(
+                "metrics/availability_ratio", np.mean(availabilities), self.steps
+            )
+            self.writer.add_scalar(
+                "metrics/avg_reward", np.mean(rewards_list), self.steps
+            )
+
+            self.steps += 1
 
         self.save()
 
         self.load()
 
+        self.steps = 0
         states, masks = self.env.reset()
         rewards_list = []
         delay = []
