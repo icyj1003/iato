@@ -13,10 +13,10 @@ default_recv = 5
 seed = 1002
 
 # mode
-train_default = True
-train_no_interruption = True
-train_N = True
-train_M = True
+train_default = False
+train_no_interruption = False
+train_N = False
+train_M = False
 train_lambda = True
 train_recv = True
 
@@ -54,14 +54,14 @@ if train_lambda:
         if lambda_I == default_lambda:
             continue
         os.system(
-            f"python train_maa2c.py --N {default_N} --M {default_M} --lambda_I {lambda_I} --recv {default_recv} --seed {seed}"
+            f"python train_maa2c.py --N {default_N} --M {default_M} --lambda_I {lambda_I} --recv {default_recv} --seed {seed} --training_steps 100000 --eval_steps 3000"
         )
 
-# training with different recv
+# # training with different recv
 if train_recv:
     for recv in recvs:
         if recv == default_recv:
             continue
         os.system(
-            f"python train_maa2c.py --N {default_N} --M {default_M} --lambda_I {default_lambda} --recv {recv} --seed {seed}"
+            f"python train_maa2c.py --N {default_N} --M {default_M} --lambda_I {default_lambda} --recv {recv} --seed {seed} --training_steps 100000 --eval_steps 3000"
         )

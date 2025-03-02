@@ -91,7 +91,11 @@ class IIoTNetwork:
 
     def generate_interruption_threshold(self):
         U = self.random_state.uniform(0, 1, self.N)
-        self.interruption_threshold = np.log(U * 100 + 1) / self.lambda_I / 100
+
+        if self.lambda_I == 0:
+            self.interruption_threshold = np.inf * np.ones(self.N)
+        else:
+            self.interruption_threshold = np.log(U * 100 + 1) / self.lambda_I / 100
 
     def reset(self):
         self.init_topology()  # generate grid topology and assign devices to edge servers
